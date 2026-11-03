@@ -3,11 +3,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: techartmedia/mayur-engineers:latest
-    container_name: mayur-engineers-billing
+    image: mayur-engineers:latest
     restart: unless-stopped
-    ports:
-      - "${PORT:-8080}:80"
+    expose:
+      - "80"
     healthcheck:
       test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1/health || exit 1"]
       interval: 30s
