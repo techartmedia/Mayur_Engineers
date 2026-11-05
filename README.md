@@ -1,75 +1,85 @@
-# Mayur Engineers – Billing Software
+# Mayur Engineers – GST Billing Lite
 
-A lightweight, standalone web application for GST invoicing, billing, and quotations developed for Mayur Engineers by TechArtMedia.
+A lightweight, professional web application for GST invoicing, quotations, bill of supply issuance, customer directory, product catalogue, and payment tracking for **Mayur Engineers**.
+
+Designed specifically as a self-contained, low-resource modular monolith targeting an **Oracle Cloud ARM64 (`aarch64` Neoverse-N1) VPS** running **Coolify (v4)**.
 
 ---
 
-## 🚀 Quick Start with Docker
+## 🛠️ Architecture & Technology Stack
 
-### Local Testing
+- **Framework**: Next.js 16 (App Router, React 19, TypeScript strict mode).
+- **Deployment Output**: Next.js Standalone container on `node:22-alpine` (native `linux/arm64`).
+- **Database**: Embedded SQLite with Write-Ahead Logging (WAL mode) and Drizzle ORM. Zero external database container required on Coolify.
+- **Financial Arithmetic**: Canonical integer paise calculations (1 INR = 100 paise). Zero floating-point math.
+- **Document Output**: Precision A4 printable layout with CSS paged media for browser print and PDF generation.
+- **Invoice Numbering**: Automatic, concurrency-safe sequential allocation (e.g., `ME/26-27/001`) with configurable prefixes and opening sequences.
 
-To build and run the container locally:
+---
 
+## 🚀 Quick Start (Local Development)
+
+### 1. Install Dependencies
 ```bash
-# Using Docker Compose
+npm install
+```
+
+### 2. Run Tests
+```bash
+# Run unit & integration test suites
+npm run test
+
+# Run TypeScript strict typecheck
+npm run typecheck
+```
+
+### 3. Start Development Server
+```bash
+npm run dev
+```
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+---
+
+## 🐳 Docker & Coolify Deployment
+
+### Building & Running with Docker
+```bash
+# Build and run container
 docker compose up -d --build
 
-# Or using plain Docker commands
-docker build -t mayur-engineers:latest .
-docker run -d -p 8080:80 --name mayur-engineers mayur-engineers:latest
+# Inspect logs
+docker compose logs -f
 ```
+The application will be accessible at [http://localhost:3000](http://localhost:3000).
 
-Open your browser and navigate to:
-[http://localhost:8080](http://localhost:8080)
+### Coolify Setup Guide
 
-To stop the container:
-```bash
-docker compose down
-# or
-docker stop mayur-engineers && docker rm mayur-engineers
-```
+1. **Add Resource**:
+   - In Coolify, select **+ Add Resource** -> **Public / Private GitHub Repository**.
+   - Repository: `https://github.com/techartmedia/Mayur_Engineers`.
+   - Branch: `main`.
+   - Build Pack: `Dockerfile`.
+2. **Ports & Domain**:
+   - **Ports Exposes**: `3000`.
+   - **Domain (FQDN)**: Configure your domain (e.g. `https://billing.mayurengineers.com`). Traefik automatically provisions SSL.
+3. **Persistent Volume**:
+   - Add persistent storage volume named `mayur-data` mounted at `/app/data`.
+   - All customer records, products, invoices, sequence numbers, and payments persist in `/app/data/mayur.db`.
+4. **Health Check**:
+   - Endpoint: `/api/health`.
 
 ---
 
-## 🌐 Deployment on Coolify
+## 📚 Documentation
 
-This project is fully pre-configured for automated deployment on **Coolify** directly from GitHub.
-
-### Step-by-Step Deployment Instructions:
-
-1. **Push Changes to GitHub**:
-   Ensure all Docker files (`Dockerfile`, `nginx.conf`, `.dockerignore`, `docker-compose.yml`) are committed and pushed to your GitHub repository:
-   ```bash
-   git add .
-   git commit -m "Add Docker and Coolify deployment configuration"
-   git push origin main
-   ```
-
-2. **Open Coolify Dashboard**:
-   - Go to your **Projects** section.
-   - Click **+ Add Resource** -> **Public Repository** (or **GitHub App** if the repo is private).
-
-3. **Configure the Application**:
-   - **Repository URL**: `https://github.com/techartmedia/Mayur_Engineers`
-   - **Branch**: `main`
-   - **Build Pack**: Coolify will automatically detect `Dockerfile` (or select `Dockerfile`).
-   - **Exposed Port**: `80` (Coolify auto-detects this from `EXPOSE 80` in the Dockerfile).
-
-4. **Set Your Domain (FQDN)**:
-   - In the **General** settings of your resource in Coolify, specify your domain:
-     - Example: `https://billing.mayurengineers.com`
-   - Coolify will automatically configure Traefik and provision a free SSL certificate via Let's Encrypt.
-
-5. **Deploy**:
-   - Click **Deploy**.
-   - Coolify pulls the repository, builds the Nginx Alpine container, verifies the `/health` endpoint, and starts routing live traffic to the application.
-   - Any future push to `main` branch will automatically trigger a zero-downtime redeployment.
-
----
-
-## 🛠️ Architecture & Specifications
-
-- **Base Image**: `nginx:alpine` (~25MB ultra-lightweight image).
-- **Web Server**: Nginx with custom Gzip compression, caching for static assets, and security headers.
-- **Healthcheck**: Endpoint at `/health` returning `200 OK` for container orchestration health checks.
-- **Routing**: Serves `mayur-billing.html` as the default root `/` and fallback.
+Complete engineering specifications, runbooks, and architectural decisions are maintained in [`/docs/`](./docs/):
+- [`/docs/product-requirements.md`](./docs/product-requirements.md): Scope, user journeys, and feature guardrails.
+- [`/docs/system-design.md`](./docs/system-design.md): System design, concurrency control, and modules.
+- [`/docs/architecture.md`](./docs/architecture.md): Container topology, memory limits, and ARM64 runtime.
+- [`/docs/data-model.md`](./docs/data-model.md): Database schema and immutable document snapshots.
+- [`/docs/tax-rules-and-approval.md`](./docs/tax-rules-and-approval.md): GST calculation rules and tax sign-off.
+- [`/docs/invoice-numbering.md`](./docs/invoice-numbering.md): Real sequence rules starting from `001`.
+- [`/docs/testing.md`](./docs/testing.md): Automated testing strategy and coverage.
+- [`/docs/hosting.md`](./docs/hosting.md): Oracle VPS and Coolify operations guide.
+- [`/docs/runbooks/`](./docs/runbooks/): Deploy, Rollback, Backups, and Incident runbooks.

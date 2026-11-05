@@ -6,3 +6,15 @@ README.md
 .vscode
 .idea
 *.log
+node_modules
+.next
+data
+*.db
+*.db-wal
+*.db-shm
+.agents
+legacy
+tests
+coverage
+*.pdf
+
