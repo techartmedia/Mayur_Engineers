@@ -139,3 +139,15 @@ export function numberToWordsIndian(paise: Paise): string {
 
   return isNegative ? 'Minus ' + result : result;
 }
+
+/**
+ * Returns Indian amount in words without "Rupees " prefix.
+ * e.g., 11800 => "One Hundred Eighteen Only"
+ */
+export function formatINRWords(paise: Paise): string {
+  const full = numberToWordsIndian(paise);
+  if (full.startsWith('Rupees ')) {
+    return full.replace(/^Rupees\s+/, '');
+  }
+  return full;
+}

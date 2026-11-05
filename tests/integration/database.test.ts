@@ -16,7 +16,7 @@ describe('Database Initialization & Persistence Integration', () => {
       .get();
 
     expect(profile).toBeDefined();
-    expect(profile?.legalName).toBe('Mayur Engineers');
+    expect(profile?.legalName?.toUpperCase()).toBe('MAYUR ENGINEERS');
     expect(profile?.gstStatus).toBe('regular');
     expect(profile?.stateCode).toBe('27');
     expect(profile?.invoicePrefix).toBe('ME');

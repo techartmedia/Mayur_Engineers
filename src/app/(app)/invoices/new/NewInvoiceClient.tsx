@@ -63,13 +63,25 @@ export default function NewInvoiceClient({
   const [directEmail, setDirectEmail] = useState('');
 
   const [documentType, setDocumentType] = useState<'TAX_INVOICE' | 'BILL_OF_SUPPLY'>('TAX_INVOICE');
-  const [isReverseCharge, setIsReverseCharge] = useState(false);
+  const [isGstBill, setIsGstBill] = useState(true);
   const [applyRoundOff, setApplyRoundOff] = useState(true);
   const [issueDate, setIssueDate] = useState(new Date().toISOString().split('T')[0]);
   const [dueDate, setDueDate] = useState('');
   const [notes, setNotes] = useState('');
   const [terms, setTerms] = useState(profile?.defaultTerms || '');
   const [loading, setLoading] = useState(false);
+
+  // Transport & Dispatch Fields
+  const [vendor, setVendor] = useState('');
+  const [ewayBillNo, setEwayBillNo] = useState('');
+  const [buyersOrderNo, setBuyersOrderNo] = useState('');
+  const [orderDate, setOrderDate] = useState('');
+  const [deliveryNote, setDeliveryNote] = useState('');
+  const [paymentTerms, setPaymentTerms] = useState('');
+  const [despatchedThrough, setDespatchedThrough] = useState('');
+  const [destination, setDestination] = useState('');
+  const [buyersCstNo, setBuyersCstNo] = useState('');
+  const [showTransportDetails, setShowTransportDetails] = useState(true);
 
   // Line items state
   const [items, setItems] = useState<
@@ -115,6 +127,16 @@ export default function NewInvoiceClient({
     }
   };
 
+  const handleGstBillToggle = (checked: boolean) => {
+    setIsGstBill(checked);
+    setDocumentType(checked ? 'TAX_INVOICE' : 'BILL_OF_SUPPLY');
+    if (!checked) {
+      setItems((prev) => prev.map((it) => ({ ...it, gstRate: 0 })));
+    } else {
+      setItems((prev) => prev.map((it) => ({ ...it, gstRate: 18 })));
+    }
+  };
+
   // Handle product auto-fill
   const handleProductSelect = (index: number, productId: string) => {
     if (productId === 'custom' || !productId) {
@@ -125,6 +147,7 @@ export default function NewInvoiceClient({
           description: copy[index].description || 'Custom Job Work / Service',
           hsnSacCode: copy[index].hsnSacCode || '9988',
           unit: copy[index].unit || 'NOS',
+          gstRate: isGstBill ? copy[index].gstRate || 18 : 0,
         };
         return copy;
       });
@@ -142,7 +165,7 @@ export default function NewInvoiceClient({
         hsnSacCode: prod.hsnSacCode || '',
         unit: prod.unit || 'NOS',
         priceRupees: toRupees(prod.pricePaise).toString(),
-        gstRate: prod.gstRate,
+        gstRate: isGstBill ? prod.gstRate : 0,
       };
       return copy;
     });
@@ -158,7 +181,7 @@ export default function NewInvoiceClient({
         quantity: 1,
         priceRupees: '0',
         discountRupees: '0',
-        gstRate: 18,
+        gstRate: isGstBill ? 18 : 0,
       },
     ]);
   };
@@ -244,8 +267,16 @@ export default function NewInvoiceClient({
         items: calculationInputs,
         notes,
         terms,
+        vendor: vendor.trim() || undefined,
+        ewayBillNo: ewayBillNo.trim() || undefined,
+        buyersOrderNo: buyersOrderNo.trim() || undefined,
+        orderDate: orderDate || undefined,
+        deliveryNote: deliveryNote.trim() || undefined,
+        paymentTerms: paymentTerms.trim() || undefined,
+        despatchedThrough: despatchedThrough.trim() || undefined,
+        destination: destination.trim() || undefined,
+        buyersCstNo: buyersCstNo.trim() || undefined,
         saveAsDraft,
-        isReverseCharge,
         saveCustomerToDirectory,
       });
 
@@ -486,19 +517,8 @@ export default function NewInvoiceClient({
           </div>
         )}
 
-        {/* Dates & Document Type */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3 border-t border-slate-100">
-          <div>
-            <label className="block font-medium text-slate-700 mb-1">Document Type</label>
-            <select
-              value={documentType}
-              onChange={(e) => setDocumentType(e.target.value as any)}
-              className="w-full border border-slate-300 rounded px-2.5 py-1.5 focus:border-teal-500 outline-none"
-            >
-              <option value="TAX_INVOICE">Tax Invoice</option>
-              <option value="BILL_OF_SUPPLY">Bill of Supply</option>
-            </select>
-          </div>
+        {/* Dates & Bill Type */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-slate-100">
           <div>
             <label className="block font-medium text-slate-700 mb-1">Issue Date</label>
             <input
@@ -519,28 +539,140 @@ export default function NewInvoiceClient({
           </div>
         </div>
 
-        {/* GST & Calculation Checkbox Options */}
-        <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center gap-6">
-          <label className="flex items-center gap-2 font-medium text-slate-700 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={isReverseCharge}
-              onChange={(e) => setIsReverseCharge(e.target.checked)}
-              className="rounded border-slate-300 text-teal-600 focus:ring-teal-500"
-            />
-            <span>Tax is payable on Reverse Charge (RCM)</span>
-          </label>
+        {/* GST Bill vs Non-GST Bill & Calculation Checkbox Options */}
+        <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-6">
+            <label className="flex items-center gap-2 font-medium text-slate-800 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={isGstBill}
+                onChange={(e) => handleGstBillToggle(e.target.checked)}
+                className="rounded border-slate-300 text-teal-600 focus:ring-teal-500 h-4 w-4"
+              />
+              <span className="font-bold text-xs text-slate-900">
+                {isGstBill ? 'GST Bill (Tax Invoice with CGST/SGST/IGST)' : 'Non-GST Bill (Bill of Supply - No Tax Rows)'}
+              </span>
+            </label>
 
-          <label className="flex items-center gap-2 font-medium text-slate-700 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={applyRoundOff}
-              onChange={(e) => setApplyRoundOff(e.target.checked)}
-              className="rounded border-slate-300 text-teal-600 focus:ring-teal-500"
-            />
-            <span>Auto Round-Off total to nearest Rupee</span>
-          </label>
+            <label className="flex items-center gap-2 font-medium text-slate-700 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={applyRoundOff}
+                onChange={(e) => setApplyRoundOff(e.target.checked)}
+                className="rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+              />
+              <span>Auto Round-Off total (R/Off)</span>
+            </label>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowTransportDetails(!showTransportDetails)}
+            className="text-xs font-semibold text-teal-700 hover:text-teal-900 hover:underline flex items-center gap-1"
+          >
+            {showTransportDetails ? 'Hide Dispatch Details' : '+ Add Dispatch / Transport Details'}
+          </button>
         </div>
+
+        {/* Expandable Dispatch & Transport Particulars (matches sample PDF) */}
+        {showTransportDetails && (
+          <div className="pt-3 border-t border-slate-100 space-y-3 bg-slate-50/60 p-3 rounded-md">
+            <div className="font-semibold text-slate-800 text-xs">
+              Dispatch, Transport & Order Particulars
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+              <div>
+                <label className="block text-slate-600 mb-0.5">Buyer's Order No.</label>
+                <input
+                  type="text"
+                  value={buyersOrderNo}
+                  onChange={(e) => setBuyersOrderNo(e.target.value)}
+                  placeholder="PO / Order #"
+                  className="w-full bg-white border border-slate-300 rounded px-2 py-1 outline-none focus:border-teal-500"
+                />
+              </div>
+              <div>
+                <label className="block text-slate-600 mb-0.5">Order Date</label>
+                <input
+                  type="date"
+                  value={orderDate}
+                  onChange={(e) => setOrderDate(e.target.value)}
+                  className="w-full bg-white border border-slate-300 rounded px-2 py-1 outline-none focus:border-teal-500"
+                />
+              </div>
+              <div>
+                <label className="block text-slate-600 mb-0.5">Delivery Note</label>
+                <input
+                  type="text"
+                  value={deliveryNote}
+                  onChange={(e) => setDeliveryNote(e.target.value)}
+                  placeholder="Challan #"
+                  className="w-full bg-white border border-slate-300 rounded px-2 py-1 outline-none focus:border-teal-500"
+                />
+              </div>
+              <div>
+                <label className="block text-slate-600 mb-0.5">Mode/Terms of Payment</label>
+                <input
+                  type="text"
+                  value={paymentTerms}
+                  onChange={(e) => setPaymentTerms(e.target.value)}
+                  placeholder="Immediate / 30 Days"
+                  className="w-full bg-white border border-slate-300 rounded px-2 py-1 outline-none focus:border-teal-500"
+                />
+              </div>
+              <div>
+                <label className="block text-slate-600 mb-0.5">Despatched through</label>
+                <input
+                  type="text"
+                  value={despatchedThrough}
+                  onChange={(e) => setDespatchedThrough(e.target.value)}
+                  placeholder="Truck / Transport"
+                  className="w-full bg-white border border-slate-300 rounded px-2 py-1 outline-none focus:border-teal-500"
+                />
+              </div>
+              <div>
+                <label className="block text-slate-600 mb-0.5">Destination</label>
+                <input
+                  type="text"
+                  value={destination}
+                  onChange={(e) => setDestination(e.target.value)}
+                  placeholder="e.g. Nashik"
+                  className="w-full bg-white border border-slate-300 rounded px-2 py-1 outline-none focus:border-teal-500"
+                />
+              </div>
+              <div>
+                <label className="block text-slate-600 mb-0.5">E-Way Bill No.</label>
+                <input
+                  type="text"
+                  value={ewayBillNo}
+                  onChange={(e) => setEwayBillNo(e.target.value)}
+                  placeholder="E-Way Bill No"
+                  className="w-full bg-white border border-slate-300 rounded px-2 py-1 outline-none focus:border-teal-500"
+                />
+              </div>
+              <div>
+                <label className="block text-slate-600 mb-0.5">VENDOR</label>
+                <input
+                  type="text"
+                  value={vendor}
+                  onChange={(e) => setVendor(e.target.value)}
+                  placeholder="Vendor Code"
+                  className="w-full bg-white border border-slate-300 rounded px-2 py-1 outline-none focus:border-teal-500"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-slate-600 mb-0.5">Buyer's CST No.</label>
+                <input
+                  type="text"
+                  value={buyersCstNo}
+                  onChange={(e) => setBuyersCstNo(e.target.value)}
+                  placeholder="CST No. if applicable"
+                  className="w-full bg-white border border-slate-300 rounded px-2 py-1 outline-none focus:border-teal-500"
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Line Items Editor */}
@@ -759,7 +891,7 @@ export default function NewInvoiceClient({
             />
           </div>
           <div>
-            <label className="block font-semibold text-slate-700 mb-1">Terms & Conditions</label>
+            <label className="block font-semibold text-slate-700 mb-1">Terms of Delivery</label>
             <textarea
               rows={3}
               value={terms}
@@ -787,26 +919,35 @@ export default function NewInvoiceClient({
             </div>
           )}
 
-          <div className="flex justify-between py-1 text-slate-800 font-semibold border-t border-slate-100 pt-2">
-            <span>Taxable Amount:</span>
-            <span className="font-mono">{formatINR(calculation.totalTaxableAmountPaise)}</span>
-          </div>
-
-          {!calculation.isInterState ? (
+          {isGstBill && calculation.totalTaxPaise > 0 ? (
             <>
-              <div className="flex justify-between py-1 text-slate-600">
-                <span>Central GST (CGST):</span>
-                <span className="font-mono">{formatINR(calculation.totalCgstPaise)}</span>
+              <div className="flex justify-between py-1 text-slate-800 font-semibold border-t border-slate-100 pt-2">
+                <span>Taxable Amount:</span>
+                <span className="font-mono">{formatINR(calculation.totalTaxableAmountPaise)}</span>
               </div>
-              <div className="flex justify-between py-1 text-slate-600">
-                <span>State GST (SGST):</span>
-                <span className="font-mono">{formatINR(calculation.totalSgstPaise)}</span>
-              </div>
+
+              {!calculation.isInterState ? (
+                <>
+                  <div className="flex justify-between py-1 text-slate-600">
+                    <span>Central GST (CGST):</span>
+                    <span className="font-mono">{formatINR(calculation.totalCgstPaise)}</span>
+                  </div>
+                  <div className="flex justify-between py-1 text-slate-600">
+                    <span>State GST (SGST):</span>
+                    <span className="font-mono">{formatINR(calculation.totalSgstPaise)}</span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex justify-between py-1 text-slate-600">
+                  <span>Integrated GST (IGST):</span>
+                  <span className="font-mono">{formatINR(calculation.totalIgstPaise)}</span>
+                </div>
+              )}
             </>
           ) : (
-            <div className="flex justify-between py-1 text-slate-600">
-              <span>Integrated GST (IGST):</span>
-              <span className="font-mono">{formatINR(calculation.totalIgstPaise)}</span>
+            <div className="flex justify-between py-1 text-slate-500 italic text-[11px] border-t border-slate-100 pt-2">
+              <span>GST Tax (Non-GST / 0% Tax):</span>
+              <span className="font-mono">₹0.00</span>
             </div>
           )}
 

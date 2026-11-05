@@ -23,6 +23,16 @@ export interface CreateQuotationPayload {
   items: LineItemInput[];
   notes?: string;
   terms?: string;
+  vendor?: string;
+  ewayBillNo?: string;
+  buyersOrderNo?: string;
+  orderDate?: string;
+  deliveryNote?: string;
+  paymentTerms?: string;
+  despatchedThrough?: string;
+  destination?: string;
+  termsOfDelivery?: string;
+  buyersCstNo?: string;
   saveCustomerToDirectory?: boolean;
 }
 
@@ -159,6 +169,16 @@ export async function createQuotation(payload: CreateQuotationPayload) {
     netTotalPaise: calculation.netTotalPaise,
     notes: payload.notes || null,
     terms: payload.terms || profile.defaultTerms,
+    vendor: payload.vendor || null,
+    ewayBillNo: payload.ewayBillNo || null,
+    buyersOrderNo: payload.buyersOrderNo || null,
+    orderDate: payload.orderDate || null,
+    deliveryNote: payload.deliveryNote || null,
+    paymentTerms: payload.paymentTerms || null,
+    despatchedThrough: payload.despatchedThrough || null,
+    destination: payload.destination || null,
+    termsOfDelivery: payload.termsOfDelivery || null,
+    buyersCstNo: payload.buyersCstNo || null,
     createdAt: now,
     updatedAt: now,
   });

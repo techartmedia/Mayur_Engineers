@@ -290,6 +290,16 @@ async function runMigrationsAndSeed() {
     await client.execute('ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0;');
   } catch (e) {}
 
+  const dispatchCols = [
+    'vendor', 'eway_bill_no', 'buyers_order_no', 'order_date',
+    'delivery_note', 'payment_terms', 'despatched_through',
+    'destination', 'terms_of_delivery', 'buyers_cst_no'
+  ];
+  for (const col of dispatchCols) {
+    try { await client.execute(`ALTER TABLE invoices ADD COLUMN ${col} TEXT;`); } catch (e) {}
+    try { await client.execute(`ALTER TABLE quotations ADD COLUMN ${col} TEXT;`); } catch (e) {}
+  }
+
   // Ensure default admin user exists with username 'admin', password 'Mayur@26', and must_change_password = 1
   const existingUsers = await client.execute("SELECT id, must_change_password FROM users WHERE username = 'admin' OR id = 'usr_admin_default' LIMIT 1");
   const defaultHash = bcrypt.hashSync('Mayur@26', 10);
@@ -320,16 +330,27 @@ async function runMigrationsAndSeed() {
         bank_ifsc, bank_branch, upi_id, logo_url, gst_status,
         invoice_prefix, opening_sequence, default_terms, updated_at
       ) VALUES (
-        1, 'Mayur Engineers', 'Mayur Engineers', 'Industrial Estate, Pune', 'Maharashtra', '27',
-        '27AABCM1234F1Z1', 'AABCM1234F', '+91 9876543210', 'info@mayurengineers.com', 
+        1, 'MAYUR ENGINEERS', 'MAYUR ENGINEERS', 'Shop No-2, Dnyaneshwar Nagar, Avhad Farm, Pathardi Phata, Nashik-422009', 'Maharashtra', '27',
+        '27CRLPG6253P3Z1', 'CRLPG6253P', '+91 9876543210', 'maayurengineers@gmail.com', 
         'State Bank of India', '12345678901', 'SBIN0001234', 'Pune Main Branch', 
         'mayurengineers@sbi', '/logo.png', 'regular', 'ME', 1,
-        'Payment terms: Due within 30 days. Goods once sold will not be taken back.', ?
+        'We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.', ?
       )`,
       args: [now],
     });
-  } else if (existing.rows[0].gst_status === 'not_confirmed') {
-    await client.execute(`UPDATE business_profile SET gst_status = 'regular' WHERE id = 1`);
+  } else {
+    // If the database has old placeholder address, update to verified Nashik address from sample PDF
+    await client.execute(`
+      UPDATE business_profile
+      SET legal_name = 'MAYUR ENGINEERS',
+          trade_name = 'MAYUR ENGINEERS',
+          address = CASE WHEN address LIKE '%Pune%' OR address = '' THEN 'Shop No-2, Dnyaneshwar Nagar, Avhad Farm, Pathardi Phata, Nashik-422009' ELSE address END,
+          gstin = CASE WHEN gstin LIKE '%27AABCM%' OR gstin = '' THEN '27CRLPG6253P3Z1' ELSE gstin END,
+          email = CASE WHEN email LIKE '%info@%' OR email = '' THEN 'maayurengineers@gmail.com' ELSE email END,
+          default_terms = CASE WHEN default_terms LIKE '%Goods once sold%' OR default_terms = '' THEN 'We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.' ELSE default_terms END,
+          gst_status = 'regular'
+      WHERE id = 1
+    `);
   }
 
   // Seed default custom job work product if catalogue is empty

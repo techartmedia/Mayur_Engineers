@@ -57,12 +57,34 @@ export default function NewQuotationClient({
   const [directPhone, setDirectPhone] = useState('');
   const [directEmail, setDirectEmail] = useState('');
   const [applyRoundOff, setApplyRoundOff] = useState(true);
+  const [isGstQuote, setIsGstQuote] = useState(true);
 
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [expiryDate, setExpiryDate] = useState('');
   const [notes, setNotes] = useState('');
   const [terms, setTerms] = useState(profile?.defaultTerms || '');
   const [loading, setLoading] = useState(false);
+
+  // Transport & Dispatch Fields
+  const [vendor, setVendor] = useState('');
+  const [ewayBillNo, setEwayBillNo] = useState('');
+  const [buyersOrderNo, setBuyersOrderNo] = useState('');
+  const [orderDate, setOrderDate] = useState('');
+  const [deliveryNote, setDeliveryNote] = useState('');
+  const [paymentTerms, setPaymentTerms] = useState('');
+  const [despatchedThrough, setDespatchedThrough] = useState('');
+  const [destination, setDestination] = useState('');
+  const [buyersCstNo, setBuyersCstNo] = useState('');
+  const [showTransportDetails, setShowTransportDetails] = useState(true);
+
+  const handleGstQuoteToggle = (checked: boolean) => {
+    setIsGstQuote(checked);
+    if (!checked) {
+      setItems((prev) => prev.map((it) => ({ ...it, gstRate: 0 })));
+    } else {
+      setItems((prev) => prev.map((it) => ({ ...it, gstRate: 18 })));
+    }
+  };
 
   const [items, setItems] = useState<
     {
@@ -233,6 +255,15 @@ export default function NewQuotationClient({
         items: calculationInputs,
         notes,
         terms,
+        vendor: vendor.trim() || undefined,
+        ewayBillNo: ewayBillNo.trim() || undefined,
+        buyersOrderNo: buyersOrderNo.trim() || undefined,
+        orderDate: orderDate || undefined,
+        deliveryNote: deliveryNote.trim() || undefined,
+        paymentTerms: paymentTerms.trim() || undefined,
+        despatchedThrough: despatchedThrough.trim() || undefined,
+        destination: destination.trim() || undefined,
+        buyersCstNo: buyersCstNo.trim() || undefined,
         saveCustomerToDirectory,
       });
 
@@ -476,7 +507,19 @@ export default function NewQuotationClient({
           </div>
         </div>
 
-        <div className="pt-2 border-t border-slate-100">
+        <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center gap-6">
+          <label className="flex items-center gap-2 font-medium text-slate-800 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={isGstQuote}
+              onChange={(e) => handleGstQuoteToggle(e.target.checked)}
+              className="rounded border-slate-300 text-teal-600 focus:ring-teal-500 h-4 w-4"
+            />
+            <span className="font-bold text-xs text-slate-900">
+              {isGstQuote ? 'GST Quotation (with GST breakdown)' : 'Non-GST Quotation / Estimate (0% Tax)'}
+            </span>
+          </label>
+
           <label className="flex items-center gap-2 font-medium text-slate-700 cursor-pointer select-none">
             <input
               type="checkbox"
@@ -484,9 +527,117 @@ export default function NewQuotationClient({
               onChange={(e) => setApplyRoundOff(e.target.checked)}
               className="rounded border-slate-300 text-teal-600 focus:ring-teal-500"
             />
-            <span>Auto Round-Off total to nearest Rupee</span>
+            <span>Auto Round-Off total (R/Off)</span>
           </label>
+
+          <button
+            type="button"
+            onClick={() => setShowTransportDetails(!showTransportDetails)}
+            className="text-xs font-semibold text-teal-700 hover:text-teal-900 hover:underline flex items-center gap-1 ml-auto"
+          >
+            {showTransportDetails ? 'Hide Dispatch Details' : '+ Add Dispatch / Transport Details'}
+          </button>
         </div>
+
+        {/* Dispatch & Transport Particulars */}
+        {showTransportDetails && (
+          <div className="pt-3 border-t border-slate-100 space-y-3 bg-slate-50/60 p-3 rounded-md">
+            <div className="font-semibold text-slate-800 text-xs">
+              Dispatch, Transport & Order Particulars
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+              <div>
+                <label className="block text-slate-600 mb-0.5">Buyer's Order No.</label>
+                <input
+                  type="text"
+                  value={buyersOrderNo}
+                  onChange={(e) => setBuyersOrderNo(e.target.value)}
+                  placeholder="PO / Order #"
+                  className="w-full bg-white border border-slate-300 rounded px-2 py-1 outline-none focus:border-teal-500"
+                />
+              </div>
+              <div>
+                <label className="block text-slate-600 mb-0.5">Order Date</label>
+                <input
+                  type="date"
+                  value={orderDate}
+                  onChange={(e) => setOrderDate(e.target.value)}
+                  className="w-full bg-white border border-slate-300 rounded px-2 py-1 outline-none focus:border-teal-500"
+                />
+              </div>
+              <div>
+                <label className="block text-slate-600 mb-0.5">Delivery Note</label>
+                <input
+                  type="text"
+                  value={deliveryNote}
+                  onChange={(e) => setDeliveryNote(e.target.value)}
+                  placeholder="Challan #"
+                  className="w-full bg-white border border-slate-300 rounded px-2 py-1 outline-none focus:border-teal-500"
+                />
+              </div>
+              <div>
+                <label className="block text-slate-600 mb-0.5">Mode/Terms of Payment</label>
+                <input
+                  type="text"
+                  value={paymentTerms}
+                  onChange={(e) => setPaymentTerms(e.target.value)}
+                  placeholder="Immediate / 30 Days"
+                  className="w-full bg-white border border-slate-300 rounded px-2 py-1 outline-none focus:border-teal-500"
+                />
+              </div>
+              <div>
+                <label className="block text-slate-600 mb-0.5">Despatched through</label>
+                <input
+                  type="text"
+                  value={despatchedThrough}
+                  onChange={(e) => setDespatchedThrough(e.target.value)}
+                  placeholder="Truck / Transport"
+                  className="w-full bg-white border border-slate-300 rounded px-2 py-1 outline-none focus:border-teal-500"
+                />
+              </div>
+              <div>
+                <label className="block text-slate-600 mb-0.5">Destination</label>
+                <input
+                  type="text"
+                  value={destination}
+                  onChange={(e) => setDestination(e.target.value)}
+                  placeholder="e.g. Nashik"
+                  className="w-full bg-white border border-slate-300 rounded px-2 py-1 outline-none focus:border-teal-500"
+                />
+              </div>
+              <div>
+                <label className="block text-slate-600 mb-0.5">E-Way Bill No.</label>
+                <input
+                  type="text"
+                  value={ewayBillNo}
+                  onChange={(e) => setEwayBillNo(e.target.value)}
+                  placeholder="E-Way Bill No"
+                  className="w-full bg-white border border-slate-300 rounded px-2 py-1 outline-none focus:border-teal-500"
+                />
+              </div>
+              <div>
+                <label className="block text-slate-600 mb-0.5">VENDOR</label>
+                <input
+                  type="text"
+                  value={vendor}
+                  onChange={(e) => setVendor(e.target.value)}
+                  placeholder="Vendor Code"
+                  className="w-full bg-white border border-slate-300 rounded px-2 py-1 outline-none focus:border-teal-500"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-slate-600 mb-0.5">Buyer's CST No.</label>
+                <input
+                  type="text"
+                  value={buyersCstNo}
+                  onChange={(e) => setBuyersCstNo(e.target.value)}
+                  placeholder="CST No. if applicable"
+                  className="w-full bg-white border border-slate-300 rounded px-2 py-1 outline-none focus:border-teal-500"
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Line Items Table */}
@@ -693,7 +844,7 @@ export default function NewQuotationClient({
             />
           </div>
           <div>
-            <label className="block font-semibold text-slate-700 mb-1">Terms & Conditions</label>
+            <label className="block font-semibold text-slate-700 mb-1">Terms of Delivery</label>
             <textarea
               rows={3}
               value={terms}
