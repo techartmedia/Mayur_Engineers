@@ -26,9 +26,10 @@ export interface AuthUser {
 export async function getCurrentUser(): Promise<AuthUser | null> {
   await ensureDatabaseInitialized();
   let sessionToken: string | undefined;
+  let cookieStore: any;
 
   try {
-    const cookieStore = await cookies();
+    cookieStore = await cookies();
     sessionToken = cookieStore.get(SESSION_COOKIE_NAME)?.value;
   } catch (e) {
     // When called outside Next.js request context (e.g. tests or standalone scripts)

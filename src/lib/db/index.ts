@@ -28,11 +28,22 @@ let initPromise: Promise<void> | null = null;
 
 /**
  * Initializes database tables and default business profile if not present.
- * Uses singleton caching so table creation and seeding only runs once per process.
+ * Uses singleton caching with table-presence verification so that table creation
+ * and seeding auto-recovers even if data files are reset while running.
  */
 export async function initializeDatabase(): Promise<void> {
   if (initPromise) {
-    return initPromise;
+    try {
+      const check = await client.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='business_profile' LIMIT 1;"
+      );
+      if (check.rows.length > 0) {
+        return initPromise;
+      }
+      initPromise = null;
+    } catch {
+      initPromise = null;
+    }
   }
   initPromise = runMigrationsAndSeed().catch((err) => {
     initPromise = null;

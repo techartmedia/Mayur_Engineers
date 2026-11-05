@@ -97,7 +97,12 @@ export default function CustomersClient({ initialCustomers }: { initialCustomers
 
     try {
       if (editingCustomer) {
-        await updateCustomer(editingCustomer.id, formData);
+        const res = await updateCustomer(editingCustomer.id, formData);
+        if (!res.success) {
+          alert(res.error || 'Failed to update customer');
+          setLoading(false);
+          return;
+        }
         setCustomers((prev) =>
           prev.map((c) =>
             c.id === editingCustomer.id
@@ -118,27 +123,31 @@ export default function CustomersClient({ initialCustomers }: { initialCustomers
         );
       } else {
         const res = await createCustomer(formData);
-        if (res.success && res.id) {
-          setCustomers([
-            {
-              id: res.id,
-              name,
-              tradeName: tradeName || null,
-              phone: phone || null,
-              email: email || null,
-              billingAddress,
-              shippingAddress: finalShippingAddress,
-              gstin: gstin || null,
-              state: selectedState?.name || 'Maharashtra',
-              stateCode,
-            },
-            ...customers,
-          ]);
+        if (!res.success || !res.id) {
+          alert(res.error || 'Failed to create customer');
+          setLoading(false);
+          return;
         }
+        setCustomers([
+          {
+            id: res.id,
+            name,
+            tradeName: tradeName || null,
+            phone: phone || null,
+            email: email || null,
+            billingAddress,
+            shippingAddress: finalShippingAddress,
+            gstin: gstin || null,
+            state: selectedState?.name || 'Maharashtra',
+            stateCode,
+          },
+          ...customers,
+        ]);
       }
       setModalOpen(false);
     } catch (err: any) {
-      alert(err.message || 'Failed to save customer');
+      const msg = err?.message || '';
+      alert(msg.includes('Minified React error') ? 'Failed to save customer due to server error.' : (msg || 'Failed to save customer'));
     } finally {
       setLoading(false);
     }
@@ -147,10 +156,15 @@ export default function CustomersClient({ initialCustomers }: { initialCustomers
   const handleArchive = async (id: string, customerName: string) => {
     if (!confirm(`Are you sure you want to archive "${customerName}"?`)) return;
     try {
-      await archiveCustomer(id);
-      setCustomers((prev) => prev.filter((c) => c.id !== id));
+      const res = await archiveCustomer(id);
+      if (res.success) {
+        setCustomers((prev) => prev.filter((c) => c.id !== id));
+      } else {
+        alert(res.error || 'Failed to archive customer');
+      }
     } catch (err: any) {
-      alert(err.message || 'Failed to archive customer');
+      const msg = err?.message || '';
+      alert(msg.includes('Minified React error') ? 'Failed to archive customer due to server error.' : (msg || 'Failed to archive customer'));
     }
   };
 

@@ -63,9 +63,12 @@ export default function QuotationsClient({ initialQuotations }: { initialQuotati
       if (res.success && res.invoiceId) {
         alert(`Successfully converted! Invoice issued as ${res.invoiceNumber}`);
         router.push(`/invoices/${res.invoiceId}`);
+      } else {
+        alert(res.error || 'Failed to convert quotation');
       }
     } catch (err: any) {
-      alert(err.message || 'Failed to convert quotation');
+      const msg = err?.message || '';
+      alert(msg.includes('Minified React error') ? 'Failed to convert quotation due to server error.' : (msg || 'Failed to convert quotation'));
     } finally {
       setConvertingId(null);
     }

@@ -109,11 +109,16 @@ export default function SettingsClient({ profile }: { profile: any }) {
     formData.append('defaultTerms', defaultTerms);
 
     try {
-      await updateBusinessProfile(formData);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
+      const res = await updateBusinessProfile(formData);
+      if (res.success) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+      } else {
+        alert(res.error || 'Failed to update settings');
+      }
     } catch (err: any) {
-      alert(err.message || 'Failed to update settings');
+      const msg = err?.message || '';
+      alert(msg.includes('Minified React error') ? 'Failed to update settings due to server error.' : (msg || 'Failed to update settings'));
     } finally {
       setLoading(false);
     }

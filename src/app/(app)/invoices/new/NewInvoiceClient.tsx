@@ -282,9 +282,17 @@ export default function NewInvoiceClient({
 
       if (res.success && res.invoiceId) {
         router.push(`/invoices/${res.invoiceId}`);
+      } else {
+        alert(res.error || 'Failed to create invoice');
+        setLoading(false);
       }
     } catch (err: any) {
-      alert(err.message || 'Failed to create invoice');
+      const msg = err?.message || '';
+      if (msg.includes('Minified React error') || msg.includes('Server Components render')) {
+        alert('Server encountered an issue saving the invoice. Please check the particulars and try again.');
+      } else {
+        alert(msg || 'Failed to create invoice');
+      }
       setLoading(false);
     }
   };

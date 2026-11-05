@@ -71,7 +71,12 @@ export default function ProductsClient({ initialProducts }: { initialProducts: P
 
     try {
       if (editingProduct) {
-        await updateProduct(editingProduct.id, formData);
+        const res = await updateProduct(editingProduct.id, formData);
+        if (!res.success) {
+          alert(res.error || 'Failed to update product');
+          setLoading(false);
+          return;
+        }
         setProducts((prev) =>
           prev.map((p) =>
             p.id === editingProduct.id
@@ -89,25 +94,29 @@ export default function ProductsClient({ initialProducts }: { initialProducts: P
         );
       } else {
         const res = await createProduct(formData);
-        if (res.success && res.id) {
-          setProducts([
-            {
-              id: res.id,
-              name,
-              description: description || null,
-              hsnSacCode: hsnSacCode || null,
-              unit,
-              pricePaise: Math.round(parseFloat(price || '0') * 100),
-              gstRate: parseFloat(gstRate),
-              isActive: 1,
-            },
-            ...products,
-          ]);
+        if (!res.success || !res.id) {
+          alert(res.error || 'Failed to create product');
+          setLoading(false);
+          return;
         }
+        setProducts([
+          {
+            id: res.id,
+            name,
+            description: description || null,
+            hsnSacCode: hsnSacCode || null,
+            unit,
+            pricePaise: Math.round(parseFloat(price || '0') * 100),
+            gstRate: parseFloat(gstRate),
+            isActive: 1,
+          },
+          ...products,
+        ]);
       }
       setModalOpen(false);
     } catch (err: any) {
-      alert(err.message || 'Failed to save product');
+      const msg = err?.message || '';
+      alert(msg.includes('Minified React error') ? 'Failed to save product due to server error.' : (msg || 'Failed to save product'));
     } finally {
       setLoading(false);
     }
@@ -115,12 +124,17 @@ export default function ProductsClient({ initialProducts }: { initialProducts: P
 
   const handleToggle = async (id: string, currentStatus: number) => {
     try {
-      await toggleProductActive(id, currentStatus);
-      setProducts((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, isActive: currentStatus === 1 ? 0 : 1 } : p))
-      );
+      const res = await toggleProductActive(id, currentStatus);
+      if (res.success) {
+        setProducts((prev) =>
+          prev.map((p) => (p.id === id ? { ...p, isActive: currentStatus === 1 ? 0 : 1 } : p))
+        );
+      } else {
+        alert(res.error || 'Failed to update status');
+      }
     } catch (err: any) {
-      alert(err.message || 'Failed to update status');
+      const msg = err?.message || '';
+      alert(msg.includes('Minified React error') ? 'Failed to update status due to server error.' : (msg || 'Failed to update status'));
     }
   };
 

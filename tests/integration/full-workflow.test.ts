@@ -44,7 +44,7 @@ describe('End-to-End Business Workflow Integration Test', () => {
     expect(res.success).toBe(true);
     expect(res.invoiceNumber).toBeDefined();
 
-    const inv = await getInvoiceById(res.invoiceId);
+    const inv = await getInvoiceById(res.invoiceId!);
     expect(inv).toBeDefined();
     expect(inv?.customerId).toBeNull();
 
@@ -109,11 +109,11 @@ describe('End-to-End Business Workflow Integration Test', () => {
     expect(quoteRes.quotationNumber).toContain('QT/');
 
     // 4. Convert quotation to official invoice (Real sequence from 001)
-    const convertRes = await convertQuotationToInvoice(quoteRes.quotationId);
+    const convertRes = await convertQuotationToInvoice(quoteRes.quotationId!);
     expect(convertRes.success).toBe(true);
     expect(convertRes.invoiceNumber).toContain('ME/');
 
-    const invoiceId = convertRes.invoiceId;
+    const invoiceId = convertRes.invoiceId!;
     const invoice = await getInvoiceById(invoiceId);
     expect(invoice).toBeDefined();
     expect(invoice?.status).toBe('ISSUED');
@@ -180,11 +180,12 @@ describe('End-to-End Business Workflow Integration Test', () => {
       ],
       saveAsDraft: false,
     });
+    expect(invRes.success).toBe(true);
 
-    const cancelRes = await cancelInvoice(invRes.invoiceId, 'Client retracted work order due to design change');
+    const cancelRes = await cancelInvoice(invRes.invoiceId!, 'Client retracted work order due to design change');
     expect(cancelRes.success).toBe(true);
 
-    const cancelledInv = await getInvoiceById(invRes.invoiceId);
+    const cancelledInv = await getInvoiceById(invRes.invoiceId!);
     expect(cancelledInv?.status).toBe('CANCELLED');
     expect(cancelledInv?.cancellationReason).toBe('Client retracted work order due to design change');
     expect(cancelledInv?.outstandingAmountPaise).toBe(0);

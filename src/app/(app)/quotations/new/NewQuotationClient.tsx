@@ -269,9 +269,17 @@ export default function NewQuotationClient({
 
       if (res.success && res.quotationId) {
         router.push(`/quotations/${res.quotationId}`);
+      } else {
+        alert(res.error || 'Failed to create quotation');
+        setLoading(false);
       }
     } catch (err: any) {
-      alert(err.message || 'Failed to create quotation');
+      const msg = err?.message || '';
+      if (msg.includes('Minified React error') || msg.includes('Server Components render')) {
+        alert('Server encountered an issue saving the quotation. Please try again.');
+      } else {
+        alert(msg || 'Failed to create quotation');
+      }
       setLoading(false);
     }
   };

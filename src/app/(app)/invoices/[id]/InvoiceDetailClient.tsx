@@ -47,9 +47,12 @@ export default function InvoiceDetailClient({ invoice }: InvoiceDetailClientProp
       if (res.success) {
         alert(`Invoice officially issued as ${res.invoiceNumber}`);
         router.refresh();
+      } else {
+        alert(res.error || 'Failed to issue invoice');
       }
     } catch (err: any) {
-      alert(err.message || 'Failed to issue invoice');
+      const msg = err?.message || '';
+      alert(msg.includes('Minified React error') ? 'Failed to issue invoice due to server error.' : (msg || 'Failed to issue invoice'));
     } finally {
       setLoading(false);
     }
@@ -65,7 +68,7 @@ export default function InvoiceDetailClient({ invoice }: InvoiceDetailClientProp
 
     setLoading(true);
     try {
-      await recordPayment({
+      const res = await recordPayment({
         invoiceId: invoice.id,
         amountPaise,
         paymentMethod: payMethod,
@@ -73,10 +76,15 @@ export default function InvoiceDetailClient({ invoice }: InvoiceDetailClientProp
         referenceNumber: payRef,
         notes: payNotes,
       });
-      setPayModalOpen(false);
-      router.refresh();
+      if (res.success) {
+        setPayModalOpen(false);
+        router.refresh();
+      } else {
+        alert(res.error || 'Failed to record payment');
+      }
     } catch (err: any) {
-      alert(err.message || 'Failed to record payment');
+      const msg = err?.message || '';
+      alert(msg.includes('Minified React error') ? 'Failed to record payment due to server error.' : (msg || 'Failed to record payment'));
     } finally {
       setLoading(false);
     }
@@ -91,11 +99,16 @@ export default function InvoiceDetailClient({ invoice }: InvoiceDetailClientProp
 
     setLoading(true);
     try {
-      await cancelInvoice(invoice.id, cancelReason);
-      setCancelModalOpen(false);
-      router.refresh();
+      const res = await cancelInvoice(invoice.id, cancelReason);
+      if (res.success) {
+        setCancelModalOpen(false);
+        router.refresh();
+      } else {
+        alert(res.error || 'Failed to cancel invoice');
+      }
     } catch (err: any) {
-      alert(err.message || 'Failed to cancel invoice');
+      const msg = err?.message || '';
+      alert(msg.includes('Minified React error') ? 'Failed to cancel invoice due to server error.' : (msg || 'Failed to cancel invoice'));
     } finally {
       setLoading(false);
     }

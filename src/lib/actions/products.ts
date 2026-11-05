@@ -24,81 +24,96 @@ export async function getProductById(id: string) {
     .get();
 }
 
-export async function createProduct(formData: FormData) {
-  await initializeDatabase();
+export async function createProduct(formData: FormData): Promise<{ success: boolean; error?: string; id?: string }> {
+  try {
+    await initializeDatabase();
 
-  const name = (formData.get('name') as string)?.trim();
-  if (!name) throw new Error('Product name is required');
+    const name = (formData.get('name') as string)?.trim();
+    if (!name) return { success: false, error: 'Product name is required' };
 
-  const description = (formData.get('description') as string)?.trim() || null;
-  const hsnSacCode = (formData.get('hsnSacCode') as string)?.trim() || null;
-  const unit = (formData.get('unit') as string)?.trim() || 'NOS';
-  const priceInput = (formData.get('price') as string) || '0';
-  const pricePaise = toPaise(priceInput);
-  const gstRate = parseFloat((formData.get('gstRate') as string) || '18.0');
+    const description = (formData.get('description') as string)?.trim() || null;
+    const hsnSacCode = (formData.get('hsnSacCode') as string)?.trim() || null;
+    const unit = (formData.get('unit') as string)?.trim() || 'NOS';
+    const priceInput = (formData.get('price') as string) || '0';
+    const pricePaise = toPaise(priceInput);
+    const gstRate = parseFloat((formData.get('gstRate') as string) || '18.0');
 
-  const now = new Date().toISOString();
-  const id = 'prod_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+    const now = new Date().toISOString();
+    const id = 'prod_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
 
-  await db.insert(products).values({
-    id,
-    name,
-    description,
-    hsnSacCode,
-    unit,
-    pricePaise,
-    gstRate,
-    isActive: 1,
-    createdAt: now,
-    updatedAt: now,
-  });
-
-  revalidatePath('/products');
-  return { success: true, id };
-}
-
-export async function updateProduct(id: string, formData: FormData) {
-  await initializeDatabase();
-
-  const name = (formData.get('name') as string)?.trim();
-  if (!name) throw new Error('Product name is required');
-
-  const description = (formData.get('description') as string)?.trim() || null;
-  const hsnSacCode = (formData.get('hsnSacCode') as string)?.trim() || null;
-  const unit = (formData.get('unit') as string)?.trim() || 'NOS';
-  const priceInput = (formData.get('price') as string) || '0';
-  const pricePaise = toPaise(priceInput);
-  const gstRate = parseFloat((formData.get('gstRate') as string) || '18.0');
-
-  const now = new Date().toISOString();
-
-  await db
-    .update(products)
-    .set({
+    await db.insert(products).values({
+      id,
       name,
       description,
       hsnSacCode,
       unit,
       pricePaise,
       gstRate,
+      isActive: 1,
+      createdAt: now,
       updatedAt: now,
-    })
-    .where(eq(products.id, id));
+    });
 
-  revalidatePath('/products');
-  return { success: true };
+    revalidatePath('/products');
+    return { success: true, id };
+  } catch (err: any) {
+    console.error('Failed to create product:', err);
+    return { success: false, error: err?.message || 'Failed to save product' };
+  }
 }
 
-export async function toggleProductActive(id: string, currentStatus: number) {
-  await initializeDatabase();
-  const newStatus = currentStatus === 1 ? 0 : 1;
-  const now = new Date().toISOString();
+export async function updateProduct(id: string, formData: FormData): Promise<{ success: boolean; error?: string }> {
+  try {
+    await initializeDatabase();
 
-  await db
-    .update(products)
-    .set({ isActive: newStatus, updatedAt: now })
-    .where(eq(products.id, id));
+    const name = (formData.get('name') as string)?.trim();
+    if (!name) return { success: false, error: 'Product name is required' };
 
-  revalidatePath('/products');
-  return { success: true };
+    const description = (formData.get('description') as string)?.trim() || null;
+    const hsnSacCode = (formData.get('hsnSacCode') as string)?.trim() || null;
+    const unit = (formData.get('unit') as string)?.trim() || 'NOS';
+    const priceInput = (formData.get('price') as string) || '0';
+    const pricePaise = toPaise(priceInput);
+    const gstRate = parseFloat((formData.get('gstRate') as string) || '18.0');
+
+    const now = new Date().toISOString();
+
+    await db
+      .update(products)
+      .set({
+        name,
+        description,
+        hsnSacCode,
+        unit,
+        pricePaise,
+        gstRate,
+        updatedAt: now,
+      })
+      .where(eq(products.id, id));
+
+    revalidatePath('/products');
+    return { success: true };
+  } catch (err: any) {
+    console.error('Failed to update product:', err);
+    return { success: false, error: err?.message || 'Failed to update product' };
+  }
+}
+
+export async function toggleProductActive(id: string, currentStatus: number): Promise<{ success: boolean; error?: string }> {
+  try {
+    await initializeDatabase();
+    const newStatus = currentStatus === 1 ? 0 : 1;
+    const now = new Date().toISOString();
+
+    await db
+      .update(products)
+      .set({ isActive: newStatus, updatedAt: now })
+      .where(eq(products.id, id));
+
+    revalidatePath('/products');
+    return { success: true };
+  } catch (err: any) {
+    console.error('Failed to toggle product status:', err);
+    return { success: false, error: err?.message || 'Failed to update status' };
+  }
 }

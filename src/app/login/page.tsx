@@ -39,7 +39,8 @@ export default function LoginPage() {
         setError(res.error || 'Invalid username or password');
       }
     } catch (err: any) {
-      setError(err.message || 'An error occurred during login');
+      const msg = err?.message || '';
+      setError(msg.includes('Minified React error') ? 'A server error occurred. Please try again.' : (msg || 'An error occurred during login'));
     } finally {
       setLoading(false);
     }
@@ -69,7 +70,8 @@ export default function LoginPage() {
         setError(res.error || 'Failed to update password');
       }
     } catch (err: any) {
-      setError(err.message || 'An error occurred while updating password');
+      const msg = err?.message || '';
+      setError(msg.includes('Minified React error') ? 'A server error occurred. Please try again.' : (msg || 'An error occurred while updating password'));
     } finally {
       setLoading(false);
     }
