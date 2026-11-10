@@ -4,10 +4,12 @@ import React, { useState } from 'react';
 import { updateBusinessProfile } from '@/lib/actions/settings';
 import { INDIAN_STATES } from '@/lib/constants/states';
 import { getFinancialYear } from '@/lib/numbering/sequence-allocator';
+import { useNotification } from '@/components/ui/NotificationProvider';
 import { Settings, Save, CheckCircle, Building, Landmark, Receipt, FileText, Lock } from 'lucide-react';
 import { changePassword } from '@/lib/actions/auth';
 
 export default function SettingsClient({ profile }: { profile: any }) {
+  const { toast } = useNotification();
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -112,13 +114,14 @@ export default function SettingsClient({ profile }: { profile: any }) {
       const res = await updateBusinessProfile(formData);
       if (res.success) {
         setSaved(true);
+        toast.success('Business profile and settings updated successfully');
         setTimeout(() => setSaved(false), 3000);
       } else {
-        alert(res.error || 'Failed to update settings');
+        toast.error(res.error || 'Failed to update settings');
       }
     } catch (err: any) {
       const msg = err?.message || '';
-      alert(msg.includes('Minified React error') ? 'Failed to update settings due to server error.' : (msg || 'Failed to update settings'));
+      toast.error(msg.includes('Minified React error') ? 'Failed to update settings due to server error.' : (msg || 'Failed to update settings'));
     } finally {
       setLoading(false);
     }

@@ -7,6 +7,7 @@ import { calculateDocument } from '@/lib/calculations/gst-calculator';
 import { formatINR, toPaise, toRupees } from '@/lib/calculations/money';
 import { LineItemInput } from '@/lib/calculations/types';
 import { INDIAN_STATES, getStateFromGstin } from '@/lib/constants/states';
+import { useNotification } from '@/components/ui/NotificationProvider';
 import { Plus, Trash2, ArrowLeft, CheckCircle, Save, UserCheck, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 
@@ -42,6 +43,7 @@ export default function NewInvoiceClient({
   profile,
 }: NewInvoiceClientProps) {
   const router = useRouter();
+  const { toast } = useNotification();
 
   // Buyer Mode: 'DIRECTORY' or 'DIRECT'
   const [buyerMode, setBuyerMode] = useState<'DIRECTORY' | 'DIRECT'>(
@@ -224,18 +226,18 @@ export default function NewInvoiceClient({
 
   const handleSubmit = async (saveAsDraft: boolean) => {
     if (buyerMode === 'DIRECTORY' && !customerId) {
-      alert('Please select a customer or switch to Direct Entry');
+      toast.warning('Please select a customer or switch to Direct Entry');
       return;
     }
 
     if (buyerMode === 'DIRECT' && !directName.trim()) {
-      alert('Please enter the buyer name');
+      toast.warning('Please enter the buyer name');
       return;
     }
 
     const hasEmpty = items.some((it) => !it.description.trim());
     if (hasEmpty) {
-      alert('Please fill out descriptions for all line items');
+      toast.warning('Please fill out descriptions for all line items');
       return;
     }
 
@@ -281,17 +283,18 @@ export default function NewInvoiceClient({
       });
 
       if (res.success && res.invoiceId) {
+        toast.success(saveAsDraft ? 'Invoice draft saved successfully' : 'Invoice created successfully');
         router.push(`/invoices/${res.invoiceId}`);
       } else {
-        alert(res.error || 'Failed to create invoice');
+        toast.error(res.error || 'Failed to create invoice');
         setLoading(false);
       }
     } catch (err: any) {
       const msg = err?.message || '';
       if (msg.includes('Minified React error') || msg.includes('Server Components render')) {
-        alert('Server encountered an issue saving the invoice. Please check the particulars and try again.');
+        toast.error('Server encountered an issue saving the invoice. Please check the particulars and try again.');
       } else {
-        alert(msg || 'Failed to create invoice');
+        toast.error(msg || 'Failed to create invoice');
       }
       setLoading(false);
     }

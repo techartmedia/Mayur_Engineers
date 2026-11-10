@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { formatINR } from '@/lib/calculations/money';
 import { convertQuotationToInvoice } from '@/lib/actions/quotations';
 import { useRouter } from 'next/navigation';
+import { useNotification } from '@/components/ui/NotificationProvider';
 import { Plus, Search, Eye, ArrowRight, Printer, CheckCircle } from 'lucide-react';
 
 interface Quotation {
@@ -20,6 +21,7 @@ interface Quotation {
 
 export default function QuotationsClient({ initialQuotations }: { initialQuotations: Quotation[] }) {
   const router = useRouter();
+  const { toast, confirm } = useNotification();
   const [quotations, setQuotations] = useState<Quotation[]>(initialQuotations);
   const [searchTerm, setSearchTerm] = useState('');
   const [convertingId, setConvertingId] = useState<string | null>(null);
@@ -56,19 +58,26 @@ export default function QuotationsClient({ initialQuotations }: { initialQuotati
   };
 
   const handleConvert = async (id: string, qNumber: string) => {
-    if (!confirm(`Convert Quotation ${qNumber} into an official Invoice? All line items and customer details will be copied.`)) return;
+    const confirmed = await confirm({
+      title: 'Convert Quotation to Invoice',
+      message: `Convert Quotation ${qNumber} into an official Invoice? All line items and customer details will be copied.`,
+      confirmText: 'Convert to Invoice',
+      variant: 'primary',
+    });
+    if (!confirmed) return;
+
     setConvertingId(id);
     try {
       const res = await convertQuotationToInvoice(id);
       if (res.success && res.invoiceId) {
-        alert(`Successfully converted! Invoice issued as ${res.invoiceNumber}`);
+        toast.success(`Successfully converted! Invoice issued as ${res.invoiceNumber}`);
         router.push(`/invoices/${res.invoiceId}`);
       } else {
-        alert(res.error || 'Failed to convert quotation');
+        toast.error(res.error || 'Failed to convert quotation');
       }
     } catch (err: any) {
       const msg = err?.message || '';
-      alert(msg.includes('Minified React error') ? 'Failed to convert quotation due to server error.' : (msg || 'Failed to convert quotation'));
+      toast.error(msg.includes('Minified React error') ? 'Failed to convert quotation due to server error.' : (msg || 'Failed to convert quotation'));
     } finally {
       setConvertingId(null);
     }

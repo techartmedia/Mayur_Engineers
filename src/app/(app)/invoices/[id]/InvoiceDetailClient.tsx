@@ -7,6 +7,7 @@ import PrintableInvoice from '@/components/printable/PrintableInvoice';
 import { issueDraftInvoice, cancelInvoice } from '@/lib/actions/invoices';
 import { recordPayment } from '@/lib/actions/payments';
 import { formatINR, toPaise, toRupees } from '@/lib/calculations/money';
+import { useNotification } from '@/components/ui/NotificationProvider';
 import {
   ArrowLeft,
   Printer,
@@ -23,6 +24,7 @@ interface InvoiceDetailClientProps {
 
 export default function InvoiceDetailClient({ invoice }: InvoiceDetailClientProps) {
   const router = useRouter();
+  const { toast, confirm } = useNotification();
 
   // Modals
   const [payModalOpen, setPayModalOpen] = useState(false);
@@ -40,19 +42,26 @@ export default function InvoiceDetailClient({ invoice }: InvoiceDetailClientProp
   const [cancelReason, setCancelReason] = useState('');
 
   const handleIssueDraft = async () => {
-    if (!confirm('Are you sure you want to officially issue this invoice? An immutable invoice number will be assigned.')) return;
+    const confirmed = await confirm({
+      title: 'Issue Tax Invoice',
+      message: 'Are you sure you want to officially issue this invoice? An immutable invoice number will be assigned.',
+      confirmText: 'Issue Invoice',
+      variant: 'primary',
+    });
+    if (!confirmed) return;
+
     setLoading(true);
     try {
       const res = await issueDraftInvoice(invoice.id);
       if (res.success) {
-        alert(`Invoice officially issued as ${res.invoiceNumber}`);
+        toast.success(`Invoice officially issued as ${res.invoiceNumber}`);
         router.refresh();
       } else {
-        alert(res.error || 'Failed to issue invoice');
+        toast.error(res.error || 'Failed to issue invoice');
       }
     } catch (err: any) {
       const msg = err?.message || '';
-      alert(msg.includes('Minified React error') ? 'Failed to issue invoice due to server error.' : (msg || 'Failed to issue invoice'));
+      toast.error(msg.includes('Minified React error') ? 'Failed to issue invoice due to server error.' : (msg || 'Failed to issue invoice'));
     } finally {
       setLoading(false);
     }
@@ -62,7 +71,7 @@ export default function InvoiceDetailClient({ invoice }: InvoiceDetailClientProp
     e.preventDefault();
     const amountPaise = toPaise(payAmount);
     if (amountPaise <= 0) {
-      alert('Please enter a valid payment amount');
+      toast.warning('Please enter a valid payment amount');
       return;
     }
 
@@ -78,13 +87,14 @@ export default function InvoiceDetailClient({ invoice }: InvoiceDetailClientProp
       });
       if (res.success) {
         setPayModalOpen(false);
+        toast.success('Payment recorded successfully');
         router.refresh();
       } else {
-        alert(res.error || 'Failed to record payment');
+        toast.error(res.error || 'Failed to record payment');
       }
     } catch (err: any) {
       const msg = err?.message || '';
-      alert(msg.includes('Minified React error') ? 'Failed to record payment due to server error.' : (msg || 'Failed to record payment'));
+      toast.error(msg.includes('Minified React error') ? 'Failed to record payment due to server error.' : (msg || 'Failed to record payment'));
     } finally {
       setLoading(false);
     }
@@ -93,7 +103,7 @@ export default function InvoiceDetailClient({ invoice }: InvoiceDetailClientProp
   const handleCancelSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!cancelReason.trim()) {
-      alert('Please state a reason for cancelling this invoice');
+      toast.warning('Please state a reason for cancelling this invoice');
       return;
     }
 
@@ -102,13 +112,14 @@ export default function InvoiceDetailClient({ invoice }: InvoiceDetailClientProp
       const res = await cancelInvoice(invoice.id, cancelReason);
       if (res.success) {
         setCancelModalOpen(false);
+        toast.success('Invoice cancelled successfully');
         router.refresh();
       } else {
-        alert(res.error || 'Failed to cancel invoice');
+        toast.error(res.error || 'Failed to cancel invoice');
       }
     } catch (err: any) {
       const msg = err?.message || '';
-      alert(msg.includes('Minified React error') ? 'Failed to cancel invoice due to server error.' : (msg || 'Failed to cancel invoice'));
+      toast.error(msg.includes('Minified React error') ? 'Failed to cancel invoice due to server error.' : (msg || 'Failed to cancel invoice'));
     } finally {
       setLoading(false);
     }

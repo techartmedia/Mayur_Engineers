@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { createProduct, updateProduct, toggleProductActive } from '@/lib/actions/products';
 import { formatINR, toRupees } from '@/lib/calculations/money';
+import { useNotification } from '@/components/ui/NotificationProvider';
 import { Package, Plus, Edit2, Check, X, Search, Tag } from 'lucide-react';
 
 interface Product {
@@ -17,6 +18,7 @@ interface Product {
 }
 
 export default function ProductsClient({ initialProducts }: { initialProducts: Product[] }) {
+  const { toast } = useNotification();
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [searchTerm, setSearchTerm] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
@@ -73,7 +75,7 @@ export default function ProductsClient({ initialProducts }: { initialProducts: P
       if (editingProduct) {
         const res = await updateProduct(editingProduct.id, formData);
         if (!res.success) {
-          alert(res.error || 'Failed to update product');
+          toast.error(res.error || 'Failed to update product');
           setLoading(false);
           return;
         }
@@ -92,10 +94,11 @@ export default function ProductsClient({ initialProducts }: { initialProducts: P
               : p
           )
         );
+        toast.success('Product updated successfully');
       } else {
         const res = await createProduct(formData);
         if (!res.success || !res.id) {
-          alert(res.error || 'Failed to create product');
+          toast.error(res.error || 'Failed to create product');
           setLoading(false);
           return;
         }
@@ -112,11 +115,12 @@ export default function ProductsClient({ initialProducts }: { initialProducts: P
           },
           ...products,
         ]);
+        toast.success('Product added successfully');
       }
       setModalOpen(false);
     } catch (err: any) {
       const msg = err?.message || '';
-      alert(msg.includes('Minified React error') ? 'Failed to save product due to server error.' : (msg || 'Failed to save product'));
+      toast.error(msg.includes('Minified React error') ? 'Failed to save product due to server error.' : (msg || 'Failed to save product'));
     } finally {
       setLoading(false);
     }
@@ -129,12 +133,13 @@ export default function ProductsClient({ initialProducts }: { initialProducts: P
         setProducts((prev) =>
           prev.map((p) => (p.id === id ? { ...p, isActive: currentStatus === 1 ? 0 : 1 } : p))
         );
+        toast.success(currentStatus === 1 ? 'Product marked inactive' : 'Product marked active');
       } else {
-        alert(res.error || 'Failed to update status');
+        toast.error(res.error || 'Failed to update status');
       }
     } catch (err: any) {
       const msg = err?.message || '';
-      alert(msg.includes('Minified React error') ? 'Failed to update status due to server error.' : (msg || 'Failed to update status'));
+      toast.error(msg.includes('Minified React error') ? 'Failed to update status due to server error.' : (msg || 'Failed to update status'));
     }
   };
 

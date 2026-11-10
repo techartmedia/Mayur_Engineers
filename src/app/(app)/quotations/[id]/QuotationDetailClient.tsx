@@ -5,27 +5,36 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import PrintableInvoice from '@/components/printable/PrintableInvoice';
 import { convertQuotationToInvoice } from '@/lib/actions/quotations';
+import { useNotification } from '@/components/ui/NotificationProvider';
 import { ArrowLeft, Printer, ArrowRight, CheckCircle2 } from 'lucide-react';
 
 export default function QuotationDetailClient({ quotation }: { quotation: any }) {
   const router = useRouter();
+  const { toast, confirm } = useNotification();
   const [loading, setLoading] = useState(false);
 
   const handleConvert = async () => {
-    if (!confirm(`Convert Quotation ${quotation.quotationNumber} into an official Invoice? All line items and customer details will be copied.`)) return;
+    const confirmed = await confirm({
+      title: 'Convert Quotation to Invoice',
+      message: `Convert Quotation ${quotation.quotationNumber} into an official Invoice? All line items and customer details will be copied.`,
+      confirmText: 'Convert to Invoice',
+      variant: 'primary',
+    });
+    if (!confirmed) return;
+
     setLoading(true);
     try {
       const res = await convertQuotationToInvoice(quotation.id);
       if (res.success && res.invoiceId) {
-        alert(`Successfully converted! Invoice issued as ${res.invoiceNumber}`);
+        toast.success(`Successfully converted! Invoice issued as ${res.invoiceNumber}`);
         router.push(`/invoices/${res.invoiceId}`);
       } else {
-        alert(res.error || 'Failed to convert quotation');
+        toast.error(res.error || 'Failed to convert quotation');
         setLoading(false);
       }
     } catch (err: any) {
       const msg = err?.message || '';
-      alert(msg.includes('Minified React error') ? 'Failed to convert quotation due to server error.' : (msg || 'Failed to convert quotation'));
+      toast.error(msg.includes('Minified React error') ? 'Failed to convert quotation due to server error.' : (msg || 'Failed to convert quotation'));
       setLoading(false);
     }
   };

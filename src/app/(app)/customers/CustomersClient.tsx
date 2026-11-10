@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { createCustomer, updateCustomer, archiveCustomer } from '@/lib/actions/customers';
 import { INDIAN_STATES, getStateFromGstin } from '@/lib/constants/states';
+import { useNotification } from '@/components/ui/NotificationProvider';
 import { Users, Plus, Edit2, Archive, Search, Phone, Mail, MapPin } from 'lucide-react';
 
 interface Customer {
@@ -19,6 +20,7 @@ interface Customer {
 }
 
 export default function CustomersClient({ initialCustomers }: { initialCustomers: Customer[] }) {
+  const { toast, confirm } = useNotification();
   const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
   const [searchTerm, setSearchTerm] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
@@ -99,7 +101,7 @@ export default function CustomersClient({ initialCustomers }: { initialCustomers
       if (editingCustomer) {
         const res = await updateCustomer(editingCustomer.id, formData);
         if (!res.success) {
-          alert(res.error || 'Failed to update customer');
+          toast.error(res.error || 'Failed to update customer');
           setLoading(false);
           return;
         }
@@ -121,10 +123,11 @@ export default function CustomersClient({ initialCustomers }: { initialCustomers
               : c
           )
         );
+        toast.success('Customer updated successfully');
       } else {
         const res = await createCustomer(formData);
         if (!res.success || !res.id) {
-          alert(res.error || 'Failed to create customer');
+          toast.error(res.error || 'Failed to create customer');
           setLoading(false);
           return;
         }
@@ -143,28 +146,37 @@ export default function CustomersClient({ initialCustomers }: { initialCustomers
           },
           ...customers,
         ]);
+        toast.success('Customer added successfully');
       }
       setModalOpen(false);
     } catch (err: any) {
       const msg = err?.message || '';
-      alert(msg.includes('Minified React error') ? 'Failed to save customer due to server error.' : (msg || 'Failed to save customer'));
+      toast.error(msg.includes('Minified React error') ? 'Failed to save customer due to server error.' : (msg || 'Failed to save customer'));
     } finally {
       setLoading(false);
     }
   };
 
   const handleArchive = async (id: string, customerName: string) => {
-    if (!confirm(`Are you sure you want to archive "${customerName}"?`)) return;
+    const confirmed = await confirm({
+      title: 'Archive Customer',
+      message: `Are you sure you want to archive "${customerName}"?`,
+      confirmText: 'Archive',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+
     try {
       const res = await archiveCustomer(id);
       if (res.success) {
         setCustomers((prev) => prev.filter((c) => c.id !== id));
+        toast.success(`"${customerName}" archived successfully`);
       } else {
-        alert(res.error || 'Failed to archive customer');
+        toast.error(res.error || 'Failed to archive customer');
       }
     } catch (err: any) {
       const msg = err?.message || '';
-      alert(msg.includes('Minified React error') ? 'Failed to archive customer due to server error.' : (msg || 'Failed to archive customer'));
+      toast.error(msg.includes('Minified React error') ? 'Failed to archive customer due to server error.' : (msg || 'Failed to archive customer'));
     }
   };
 
